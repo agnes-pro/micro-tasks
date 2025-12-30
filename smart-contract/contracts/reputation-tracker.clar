@@ -39,3 +39,42 @@
 
 ;; Initialize authorization
 (map-set authorized-contracts CONTRACT-OWNER true)
+
+;; Read-only functions
+
+(define-read-only (get-reputation (user principal))
+    (let (
+        (user-stats (default-to 
+            {
+                total-tasks-completed: u0,
+                total-tasks-created: u0,
+                total-ratings: u0,
+                sum-ratings: u0,
+                disputes-opened: u0,
+                disputes-won: u0,
+                disputes-lost: u0,
+                total-earned: u0,
+                total-spent: u0
+            }
+            (map-get? user-reputation { user: user })
+        ))
+    )
+    (ok (calculate-reputation-score user-stats)))
+)
+
+(define-read-only (get-user-stats (user principal))
+    (ok (default-to 
+        {
+            total-tasks-completed: u0,
+            total-tasks-created: u0,
+            total-ratings: u0,
+            sum-ratings: u0,
+            disputes-opened: u0,
+            disputes-won: u0,
+            disputes-lost: u0,
+            total-earned: u0,
+            total-spent: u0
+        }
+        (map-get? user-reputation { user: user })
+    ))
+)
