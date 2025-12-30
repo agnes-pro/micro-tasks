@@ -78,3 +78,61 @@
         (map-get? user-reputation { user: user })
     ))
 )
+
+(define-read-only (get-average-rating (user principal))
+    (let (
+        (user-stats (unwrap! (map-get? user-reputation { user: user }) (ok u0)))
+        (total-ratings (get total-ratings user-stats))
+        (sum-ratings (get sum-ratings user-stats))
+    )
+    (if (> total-ratings u0)
+        (ok (/ (* sum-ratings u100) total-ratings))
+        (ok u0)
+    ))
+)
+
+(define-read-only (get-completion-rate (user principal))
+    (let (
+        (user-stats (unwrap! (map-get? user-reputation { user: user }) (ok u0)))
+        (completed (get total-tasks-completed user-stats))
+        (created (get total-tasks-created user-stats))
+        (total (+ completed created))
+    )
+    (if (> total u0)
+        (ok (/ (* completed u10000) total))
+        (ok u0)
+    ))
+)
+
+(define-read-only (is-authorized-contract (contract principal))
+    (ok (default-to false (map-get? authorized-contracts contract)))
+)
+
+;; Private functions
+
+(define-private (calculate-reputation-score (stats (tuple 
+    (total-tasks-completed uint)
+    (total-tasks-created uint)
+    (total-ratings uint)
+    (sum-ratings uint)
+    (disputes-opened uint)
+    (disputes-won uint)
+    (disputes-lost uint)
+    (total-earned uint)
+    (total-spent uint)
+)))
+    (let (
+        (completed-score (* (get total-tasks-completed stats) COMPLETED-TASK-WEIGHT))
+        (avg-rating-score (if (> (get total-ratings stats) u0)
+            (/ (* (get sum-ratings stats) RATING-WEIGHT) (get total-ratings stats))
+            u0
+        ))
+        (dispute-penalty (* (get disputes-lost stats) DISPUTE-LOST-PENALTY))
+        (dispute-bonus (* (get disputes-won stats) DISPUTE-WON-BONUS))
+        (raw-score (+ (+ completed-score avg-rating-score) dispute-bonus))
+    )
+    (if (> raw-score dispute-penalty)
+        (- raw-score dispute-penalty)
+        u0
+    ))
+)
